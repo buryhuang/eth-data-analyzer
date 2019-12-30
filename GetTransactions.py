@@ -11,11 +11,11 @@ import decimal
 import uuid
 import re
 import urllib.parse
-import msvcrt as m
+# import msvcrt as m
 import re
 
-def wait():
-    m.getch()
+# def wait():
+#     m.getch()
 
 # Helper class to convert a DynamoDB item to JSON.
 class DecimalEncoder(json.JSONEncoder):
