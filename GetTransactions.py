@@ -104,7 +104,7 @@ with open(output_filename, 'r') as output_csv_file:
         existing_tx_map[tx_hash] = True
 
 # process new records
-line_limit = 2500
+line_limit = 20000
 with open(input_filename) as input_csv_file:
     csv_reader = csv.reader(input_csv_file, delimiter=',')
     line_count = 0
