@@ -1,20 +1,23 @@
 ##This is the code for getting data from etherscan
 import json
+import io
+import csv
+import sys
 import etherscan.accounts as accounts
 from datetime import datetime
 
 
 ##transfer  内部转账  beabacc8    borrow  借款  4b8a3529   repay  还款  22867d78
-    # depositToken  存款  338b5dea
-    # withdrawToken   取款  9e281a98    withdrawAllToken   全部取款  ae4dd0fc
-    # liquidate    清算  86b9d81f
+# depositToken  存款  338b5dea
+# withdrawToken   取款  9e281a98    withdrawAllToken   全部取款  ae4dd0fc
+# liquidate    清算  86b9d81f
 class definer_data_collector():
     def __init__(self):
         self.transaction = []
         self.transaction_erc20 = []
-        self.definer_function = {"beabacc8 ":"transfer", "4b8a3529":"borrow","22867d78":"repay",\
-             "9e281a98":"withdrawToken","338b5dea":"depositToken","ae4dd0fc":"withdrawAllToken",\
-             "86b9d81f":"liquidate "}
+        self.definer_function = {"beabacc8 ":"transfer", "4b8a3529":"borrow","22867d78":"repay", \
+                                 "9e281a98":"withdrawToken","338b5dea":"depositToken","ae4dd0fc":"withdrawAllToken", \
+                                 "86b9d81f":"liquidate "}
 
     # This is the function to get ALL Transaction from the specific account/contract from etherscan
     # Due to the Limitation of the API, only 10000 transaction will be stored
@@ -83,8 +86,54 @@ class definer_data_collector():
                     self.transaction_erc20.append(action)
 
 
+    def find_all_keys(self,data):
+        keys = set()
+        for entry in data:
+            try:
+                for key in entry.keys():
+                    keys.add(key)
+            except:
+                print(entry)
+                print("Unexpected error:", entry, sys.exc_info()[0])
+        return keys
+
+
+    def json_to_csv(self,data,name):
+        output = io.StringIO()
+        csv_writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
+        count = 0
+        header = self.find_all_keys(data)
+        for entry in data:
+            if count == 0:
+                # Writing headers of CSV file
+                csv_writer.writerow(list(header))
+                count += 1
+            try:
+                values = []
+                for key in header:
+                    if key in entry:
+                        values.append(entry[key])
+                    else:
+                        values.append(None)
+                # Writing data of CSV file
+                csv_writer.writerow(values)
+            except:
+                print(entry)
+                print("Unexpected error:", entry, sys.exc_info()[0])
+
+        text = output.getvalue().replace("\r","")
+        text_file = open(name+".csv", "w")
+        n = text_file.write(text)
+        text_file.close()
+
 
 ## Wrapper
 name = definer_data_collector()
-#name.etherscan_reader()
+name.etherscan_reader()
 name.etherscan_reader_erc20()
+with open('Definer.json') as f:
+    data = json.load(f)
+with open('Definer_erc20.json') as f:
+    data1 = json.load(f)
+name.json_to_csv(data,"Definer")
+name.json_to_csv(data1,"Definer_erc20")
