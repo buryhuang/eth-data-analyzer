@@ -128,12 +128,24 @@ class definer_data_collector():
 
 
 ## Wrapper
-name = definer_data_collector()
-name.etherscan_reader()
-name.etherscan_reader_erc20()
-with open('Definer.json') as f:
-    data = json.load(f)
-with open('Definer_erc20.json') as f:
-    data1 = json.load(f)
-name.json_to_csv(data,"Definer")
-name.json_to_csv(data1,"Definer_erc20")
+def main():
+    name = definer_data_collector()
+    name.etherscan_reader()
+    name.etherscan_reader_erc20()
+    with open('Definer.json') as f:
+        data = json.load(f)
+    with open('Definer_erc20.json') as f:
+        data1 = json.load(f)
+    name.json_to_csv(data,"Definer")
+    name.json_to_csv(data1,"Definer_erc20")
+
+def lambda_handler(event, context):
+    main()
+    return {
+        'statusCode': 200,
+        'body': 'hello'
+    }
+
+if __name__ == "__main__":
+    # execute only if run as a script
+    main()
