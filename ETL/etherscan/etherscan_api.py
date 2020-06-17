@@ -7,10 +7,10 @@ import etherscan.accounts as accounts
 from datetime import datetime
 
 
-##transfer  内部转账  beabacc8    borrow  借款  4b8a3529   repay  还款  22867d78
-# depositToken  存款  338b5dea
-# withdrawToken   取款  9e281a98    withdrawAllToken   全部取款  ae4dd0fc
-# liquidate    清算  86b9d81f
+##transfer  beabacc8    borrow  4b8a3529   repay  22867d78
+# depositToken  338b5dea
+# withdrawToken  9e281a98    withdrawAllToken  ae4dd0fc
+# liquidate  86b9d81f
 class definer_data_collector():
     def __init__(self):
         self.transaction = []
