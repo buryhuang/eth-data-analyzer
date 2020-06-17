@@ -5,6 +5,7 @@ import csv
 import sys
 import etherscan.accounts as accounts
 from datetime import datetime
+import boto3
 
 
 ##transfer  beabacc8    borrow  4b8a3529   repay  22867d78
@@ -29,8 +30,7 @@ class definer_data_collector():
         api = accounts.Account(address=address, api_key=key)
         self.transaction = api.get_transaction_page(sort='desc',offset=number)
         self.change_dictionary()
-        with open("Definer.json","w")as outfile:
-            json.dump(self.transaction, outfile)
+        return self.transaction
 
     # This is the function to get  Transaction with ERC_20 from the specific account/contract from etherscan
     # If you want all transactions, set full_transaction = True. Otherwise, it will return the transaction, which only have erc20 token envolved
@@ -40,11 +40,15 @@ class definer_data_collector():
         with open('api_key.json', mode='r') as key_file:
             key = json.loads(key_file.read())['key']
         api = accounts.Account(address=address, api_key=key)
+        print("bury000")
+        print(api)
         self.transaction_erc20 = api.get_transaction_page(sort='desc',offset=number,erc20=True)
+        print("burytest")
+        print(self.transaction_erc20)
         transaction_action_input = api.get_transaction_page(sort='desc',offset=number)
         self.change_dictionary_erc20(transaction_action_input,full_transaction)
-        with open("Definer_erc20.json","w")as outfile:
-            json.dump(self.transaction_erc20, outfile)
+        print(self.transaction_erc20)
+        return self.transaction_erc20
 
     # Data cleaning for function:etherscan_reader
     def change_dictionary(self):
@@ -85,67 +89,54 @@ class definer_data_collector():
                 if action['hash'] not in action_input:
                     self.transaction_erc20.append(action)
 
+def find_all_keys(data):
+    keys = set()
+    for entry in data:
+        try:
+            for key in entry.keys():
+                keys.add(key)
+        except:
+            print(entry)
+            print("Unexpected error:", entry, sys.exc_info()[0])
+    return keys
 
-    def find_all_keys(self,data):
-        keys = set()
-        for entry in data:
-            try:
-                for key in entry.keys():
-                    keys.add(key)
-            except:
-                print(entry)
-                print("Unexpected error:", entry, sys.exc_info()[0])
-        return keys
+def json_to_csv(data):
+    output = io.StringIO()
+    csv_writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
+    
+    count = 0
+    header = find_all_keys(data)
+    print(header)
+    for entry in data: 
+        if count == 0: 
+            # Writing headers of CSV file 
+            csv_writer.writerow(list(header)) 
+            count += 1
+      
+        try:
+            values = []
+            for key in header:
+                if key in entry:
+                    values.append(entry[key])
+                else:
+                    values.append(None)
+            # Writing data of CSV file 
+            csv_writer.writerow(values)
+        except:
+            print(entry)
+            print("Unexpected error:", entry, sys.exc_info()[0])
 
-
-    def json_to_csv(self,data,name):
-        output = io.StringIO()
-        csv_writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
-        count = 0
-        header = self.find_all_keys(data)
-        for entry in data:
-            if count == 0:
-                # Writing headers of CSV file
-                csv_writer.writerow(list(header))
-                count += 1
-            try:
-                values = []
-                for key in header:
-                    if key in entry:
-                        values.append(entry[key])
-                    else:
-                        values.append(None)
-                # Writing data of CSV file
-                csv_writer.writerow(values)
-            except:
-                print(entry)
-                print("Unexpected error:", entry, sys.exc_info()[0])
-
-        text = output.getvalue().replace("\r","")
-        text_file = open(name+".csv", "w")
-        n = text_file.write(text)
-        text_file.close()
-
-
-## Wrapper
-def main():
-    name = definer_data_collector()
-    name.etherscan_reader()
-    name.etherscan_reader_erc20()
-    with open('Definer.json') as f:
-        data = json.load(f)
-    with open('Definer_erc20.json') as f:
-        data1 = json.load(f)
-    name.json_to_csv(data,"Definer")
-    name.json_to_csv(data1,"Definer_erc20")
+    return output.getvalue()
 
 def lambda_handler(event, context):
-    main()
+    print("bury starting")
+    data_collector = definer_data_collector()
+    erc20_transactions = data_collector.etherscan_reader_erc20()
+    
+    client = boto3.client('s3')
+    client.put_object(Body=json_to_csv(erc20_transactions), Bucket='definerdatastore', Key='Definer_erc20.csv')
+    
     return {
         'statusCode': 200,
-        'body': 'hello'
+        'body': 'returned %d' % len(erc20_transactions)
     }
-
-if __name__ == "__main__":
-    # execute only if run as a script
-    main()
